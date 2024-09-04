@@ -366,6 +366,7 @@ def predict(
     export_pickle: bool = False,
     export_crop: bool = False,
     dataset_json_path: bool = None,
+    export_json_result: bool = True,
     project: str = "runs/predict",
     name: str = "exp",
     visual_bbox_thickness: int = None,
@@ -444,6 +445,8 @@ def predict(
             Export predictions as cropped images.
         dataset_json_path: str
             If coco file path is provided, detection results will be exported in coco json format.
+        export_json_result: bool
+            If the result of the prediction is exported as a json file.
         project: str
             Save results to project/name.
         name: str
@@ -492,10 +495,11 @@ def predict(
     # TODO: rewrite this as iterator class as in https://github.com/ultralytics/yolov5/blob/d059d1da03aee9a3c0059895aa4c7c14b7f25a9e/utils/datasets.py#L178
     source_is_video = False
     num_frames = None
+    if export_json_result:
+        coco_json = []
     if dataset_json_path:
         coco: Coco = Coco.from_coco_dict_or_path(dataset_json_path)
         image_iterator = [str(Path(source) / Path(coco_image.file_name)) for coco_image in coco.images]
-        coco_json = []
     elif os.path.isdir(source):
         image_iterator = list_files(
             directory=source,
@@ -591,7 +595,7 @@ def predict(
                 "Prediction time is: {:.2f} ms".format(prediction_result.durations_in_seconds["prediction"] * 1000)
             )
 
-        if dataset_json_path:
+        if export_json_result:
             if source_is_video is True:
                 raise NotImplementedError("Video input type not supported with coco formatted dataset json")
 
@@ -688,11 +692,11 @@ def predict(
         durations_in_seconds["export_files"] = time_end
 
     # export coco results
-    if dataset_json_path:
+    if export_json_result:
         save_path = str(save_dir / "result.json")
         save_json(coco_json, save_path)
 
-    if not novisual or export_pickle or export_crop or dataset_json_path is not None:
+    if not novisual or export_pickle or export_crop or export_json_result:
         print(f"Prediction results are successfully exported to {save_dir}")
 
     # print prediction duration
